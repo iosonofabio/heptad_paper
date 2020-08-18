@@ -230,9 +230,9 @@ if __name__ == '__main__':
             sfdn = 'meh'
 
         fig = res['fig']
-        fig.savefig('../../figures/shared/distros/{:}/{:}_affecting_{:}.png'.format(
-            sfdn, gene1, gene2),
-            )
+        #fig.savefig('../../figures/shared/distros/{:}/{:}_affecting_{:}.png'.format(
+        #    sfdn, gene1, gene2),
+        #    )
 
     plt.ion()
     plt.show()

@@ -118,7 +118,7 @@ if __name__ == '__main__':
             ax.set_title(gene)
         fig.suptitle(title)
         fig.tight_layout(rect=(0, 0, 1, 0.95))
-        fig.savefig('../../figures/Palantir_tsne_{:}.png'.format(title))
+        #fig.savefig('../../figures/Palantir_tsne_{:}.png'.format(title))
 
     plt.ion()
     plt.show()
