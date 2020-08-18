@@ -4,10 +4,10 @@ This repo contains the computational analyses for Figs. 1 and 4 of the paper by 
 The repo is organised as follows:
 
 - `heptad` contains the scripts and Jupyter notebooks
+- `data` containing the raw data (not all tracked)
 
 Other folders - not tracked by version control - that are needed to execute the scripts are:
 
-- `data` containing the raw data
 - `figures` which is where the paper panels will be put
 
 The code folder `heptad` is organised as follows:
@@ -18,3 +18,4 @@ The code folder `heptad` is organised as follows:
 - `processing` contains a script that preprocesses ATAC-Seq data towards figure making
 
 The methods are also described in the manuscript, and of course please write us an email if you have questions or requests.
+
