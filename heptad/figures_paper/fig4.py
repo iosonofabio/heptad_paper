@@ -656,44 +656,59 @@ if __name__ == '__main__':
         from sklearn.ensemble import RandomForestClassifier
         gene_lists = [[tf] for tf in tfs]
         gene_lists += [['GATA2', 'TAL1'], ['GATA2', 'TAL1', 'ERG'], tfs]
-        aucs = []
-        for genes in gene_lists:
-            print('Study supervised learning with genes: {:}'.format(', '.join(genes)))
 
-            dsPtf = dsPi.query_features_by_name(genes)
-            dstf = dsi.query_features_by_name(genes)
+        fn_aucs = f'{fig_fdn}prediction_cell_state_AUCs.tsv'
+        if not os.path.isfile(fn_aucs):
+            nreps = 10
+            hms = []
+            for nrep in range(nreps):
+                aucs = []
+                for genes in gene_lists:
+                    print('Study supervised learning with genes: {:}'.format(', '.join(genes)))
 
-            def rebalance(X, y):
-                keep = y.copy()
-                ind = np.random.choice((~y).nonzero()[0], size=y.sum(), replace=False)
-                keep[ind] = True
-                return X[keep], y[keep]
+                    dsPtf = dsPi.query_features_by_name(genes)
+                    dstf = dsi.query_features_by_name(genes)
 
-            #FIXME: something is fishy, it works better with 1 gene than multiple?
-            X_train = dsPtf.counts.values.T
-            X_test = dstf.counts.values.T
+                    def rebalance(X, y):
+                        keep = y.copy()
+                        ind = np.random.choice((~y).nonzero()[0], size=y.sum(), replace=False)
+                        keep[ind] = True
+                        return X[keep], y[keep]
 
-            X_train_reb, y_train_reb = rebalance(X_train, y_train)
-            X_test_reb, y_test_reb = rebalance(X_test, y_test)
+                    #FIXME: something is fishy, it works better with 1 gene than multiple?
+                    X_train = dsPtf.counts.values.T
+                    X_test = dstf.counts.values.T
 
-            model = RandomForestClassifier(max_depth=10, min_samples_leaf=4)
+                    X_train_reb, y_train_reb = rebalance(X_train, y_train)
+                    X_test_reb, y_test_reb = rebalance(X_test, y_test)
 
-            tmp = []
-            for i in range(3):
-                #model.fit(X_train, y_train)
-                model.fit(X_train_reb, y_train_reb)
-                #model.fit(X_test_reb, y_test_reb)
-                #y_prob = model.predict_proba(X_test)
-                #auc = roc_auc_score(y_test, y_prob[:, 1])
-                y_prob = model.predict_proba(X_test_reb)
-                auc = roc_auc_score(y_test_reb, y_prob[:, 1])
-                tmp.append(auc)
-            auc = np.mean(auc)
-            auc_std = np.std(auc)
+                    model = RandomForestClassifier(max_depth=10, min_samples_leaf=4)
 
-            aucs.append({'gene': ', '.join(genes), 'auc': auc, 'auc_std': auc_std})
+                    tmp = []
+                    for i in range(3):
+                        #model.fit(X_train, y_train)
+                        model.fit(X_train_reb, y_train_reb)
+                        #model.fit(X_test_reb, y_test_reb)
+                        #y_prob = model.predict_proba(X_test)
+                        #auc = roc_auc_score(y_test, y_prob[:, 1])
+                        y_prob = model.predict_proba(X_test_reb)
+                        auc = roc_auc_score(y_test_reb, y_prob[:, 1])
+                        tmp.append(auc)
+                    auc = np.mean(auc)
+                    auc_std = np.std(auc)
 
-        hm = pd.DataFrame(aucs).set_index('gene')
+                    aucs.append({'gene': ', '.join(genes), 'auc': auc, 'auc_std': auc_std})
+                hm = pd.DataFrame(aucs).set_index('gene')
+                hms.append(hm['auc'].values)
+            hms = pd.DataFrame(hms, columns=[', '.join(x) for x in gene_lists])
+
+            hm = hms.mean(axis=0).to_frame()
+            hm.columns = ['auc']
+            hm['auc_std'] = hms.std(axis=0)
+            hm.sort_values('auc', inplace=True)
+            hm.to_csv(fn_aucs, sep='\t', index=True)
+        else:
+            hm = pd.read_csv(fn_aucs, sep='\t', index_col=0)
 
         if True:
             fig, ax = plt.subplots(figsize=(3, 3))
@@ -703,13 +718,13 @@ if __name__ == '__main__':
                 dy = row['auc_std']
                 color = heptad_pal.get(gene, 'grey')
                 ax.bar([ig], [y], width=0.8, color=color, alpha=0.8, zorder=9)
-                #ax.errorbar([ig], [y], yerr=[dy], color=heptad_pal[gene], lw=2)
+                ax.errorbar([ig], [y], yerr=[dy], color=color, lw=2)
             ax.set_xticks(np.arange(len(hms)))
             xtl = [x if x != ', '.join(tfs) else 'All 7' for x in hms.index]
             ax.set_xticklabels(xtl, rotation=90)
             for tk in ax.get_xticklabels():
                 if ',' in tk.get_text():
-                    tk.set_fontsize(8)
+                    tk.set_fontsize(9)
             ax.set_ylabel('Area under ROC')
             ax.grid(True)
             ax.set_ylim(bottom=0.3)
@@ -720,7 +735,7 @@ if __name__ == '__main__':
             for ext in ['png', 'svg']:
                 fig.savefig(f'{fig_fdn}{fxf}.{ext}')
 
-    if True:
+    if False:
         print('Plot average shifts across cell state boundary')
         ct1, ct2 = ['Ery-precursor', 'HSC']
         tfsp = ['GATA2', 'TAL1', 'ERG', 'FLI1', 'LMO2', 'RUNX1', 'LYL1']
@@ -795,7 +810,7 @@ if __name__ == '__main__':
                 for ext in ['png', 'svg']:
                     fig.savefig(f'{fig_fdn}{fxf}.{ext}')
 
-        if True:
+        if False:
             print('Bar plot')
             fig, axs = plt.subplots(1, 2, figsize=(5, 2.3), sharex=True, sharey=True)
             ax = axs[0]
@@ -843,123 +858,85 @@ if __name__ == '__main__':
                 for ext in ['png', 'svg']:
                     fig.savefig(f'{fig_fdn}{fxf}.{ext}')
 
-        if False:
-            print('Plot arrows in 2D')
-            fig, ax = plt.subplots(figsize=(4, 3))
-            for itf, tf in enumerate(tfsp):
-                x = np.array([st2.loc[tf, 'mean'], st1.loc[tf, 'mean']])
-                y = np.array([stP2.loc[tf, 'mean'], stP1.loc[tf, 'mean']])
+    if False:
+        print('Plot average shifts across cell state boundary, randomized')
+        ct1, ct2 = ['Ery-precursor', 'HSC']
+        tfsp = ['GATA2', 'TAL1', 'ERG', 'FLI1', 'LMO2', 'RUNX1', 'LYL1']
+        ds.samplesheet['cellSubtype'] = northstar_assignment.loc[ds.samplenames]
 
-                x = np.log10(x)
-                y = np.log10(y)
+        dfP = dsP.counts.loc[tfsp].T.copy()
+        dfP['cellSubtype'] = dsP.samplesheet['Cell Subtype']
+
+        df = ds.counts.loc[tfsp].T.copy()
+        df['cellSubtype'] = ds.samplesheet['cellSubtype']
+
+        def get_ratios(df):
+            st = df.groupby('cellSubtype').mean().loc[[ct1, ct2]]
+            return st.iloc[0] / st.iloc[1]
+
+        def randomize(df):
+            ind = np.arange(len(df))
+            np.random.shuffle(ind)
+            df = df.copy()
+            df['cellSubtype'] = df['cellSubtype'].values[ind]
+            return df
+
+        ratios_ME1 = get_ratios(df)
+        ratios_rand_ME1 = pd.concat([get_ratios(randomize(df)) for i in range(10000)], axis=1).T
+
+        ratiosP = get_ratios(dfP)
+        ratios_randP = pd.concat([get_ratios(randomize(dfP)) for i in range(10000)], axis=1).T
+
+        from scipy.stats import gaussian_kde
+        for [ratios, ratios_rand, fxf_suf] in zip([ratios_ME1, ratiosP], [ratios_rand_ME1, ratios_randP], ['ME-1', 'Healthy marrow']):
+            fig, axs = plt.subplots(2, 4, figsize=(8, 4), sharey=True)
+            axs = axs.ravel()
+            txt = {'GATA2': [0.95, 0.95, 'right'], 'TAL1': [0.9, 0.95, 'right'], 'ERG': [0.05, 0.95, 'left']}
+            for gene, ax in zip(tfsp, axs):
+                x = ratios_rand[gene].values
+                xint = np.linspace(-4, 4, 200)
+                yint = gaussian_kde(np.log2(x), bw_method=0.4)(xint)
+                yint /= yint.max()
+                ax.fill_between(
+                        xint, 0, yint, color=heptad_pal[gene],
+                        )
+
+                r = ratios[gene]
+                if r > 1:
+                    pval = (x > r).mean()
+                else:
+                    pval = (x < r).mean()
+
+                if pval < 1e-4:
+                    pvalt = '<1e-4'
+                else:
+                    pvalt = '={:.1e}'.format(pval)
 
                 ax.arrow(
-                    x[0], y[0], x[1] - x[0], y[1] - y[0],
-                    color=cmap[tf],
-                    lw=2,
-                    length_includes_head=True,
-                    head_width=0.08,
-                    zorder=9,
+                    np.log2(r), 0.7, 0, -0.6,
+                    head_length=0.1,
+                    head_width=0.5, length_includes_head=True,
+                    overhang=0.2,
+                    color='k',
                     )
-                ax.plot([], [], lw=2, color=cmap[tf], label=tf)
+                tx, ty, ta = txt.get(gene, [0.05 + 0.9 * (r > 1), 0.95, 'left' if r < 1 else 'right'])
+                ax.text(tx, ty, f'P{pvalt}'.format(pval), ha=ta, va='top',
+                        transform=ax.transAxes, fontsize=10)
 
-            ax.grid(True)
-            ax.set_xlabel('ME1 expression')
-            ax.set_ylabel('Palantir expression')
-            ax.set_xlim(-1, 1.1)
-            ax.set_xticks([-1, 0, 1])
-            ax.set_xticklabels(['$10^{-1}$', '$1$', '$10$'])
-            ax.set_ylim(-1, 1.1)
-            ax.set_yticks([-1, 0, 1])
-            ax.set_yticklabels(['$10^{-1}$', '$1$', '$10$'])
-            ax.legend(
-                    title='Gene:',
-                    loc='upper left',
-                    bbox_to_anchor=(1.01, 1.1), bbox_transform=ax.transAxes,
-                    fontsize=9,
-                    )
-            fig.tight_layout()
+                ax.set_title(gene)
+                ax.set_xticks([-4, -2, 0, 2, 4])
+                ax.set_xticklabels(['1/16', '1/4', '1', '4', '16'])
+                ax.set_ylabel('Density [A.U.]')
+            axs[-1].set_axis_off()
+            fig.suptitle(fxf_suf)
+            fig.tight_layout(rect=(0, 0, 1, 0.99))
 
             if True:
-                fxf = 'average_across_boundary_arrows'
+                fxf = f'average_across_boundary_bars_random_{fxf_suf}'
                 for ext in ['png', 'svg']:
                     fig.savefig(f'{fig_fdn}{fxf}.{ext}')
 
-        if False:
-            print('Plot arrows in a polar plot')
-            fig = plt.figure(figsize=(4.4, 3.4))
-            ax = fig.add_subplot()
-            for itf, tf in enumerate(tfsp):
-                x = np.array([st2.loc[tf, 'mean'], st1.loc[tf, 'mean']])
-                y = np.array([stP2.loc[tf, 'mean'], stP1.loc[tf, 'mean']])
-                x = np.log10(x)
-                y = np.log10(y)
-                dx = x[1] - x[0]
-                dy = y[1] - y[0]
-                ax.arrow(
-                    0, 0, dx, dy,
-                    color=cmap[tf],
-                    lw=2,
-                    length_includes_head=True,
-                    head_width=0.08,
-                    zorder=9,
-                    )
-                ax.plot([], [], lw=2, color=cmap[tf], label=tf)
 
-            ax.spines['right'].set_visible(False)
-            ax.spines['top'].set_visible(False)
-            ax.spines['left'].set_visible(False)
-            ax.spines['bottom'].set_visible(False)
-            ax.set_xticks([])
-            ax.set_yticks([])
-            rm = 1.3
-            ax.set_xlim(-1.25 * rm, 1.25 * rm)
-            ax.set_ylim(-1.25 * rm, 1.25 * rm)
-            ax.text(
-                    1.0, -0.02, '10x', va='top', ha='center',
-                    bbox=dict(facecolor='white', edgecolor='none'),
-                    )
-
-            rs = {'minor': [0.25, 0.5, 0.75, 1.25], 'major': [1], 'spine': [rm]}
-            for key, rsi in rs.items():
-                ec = 'grey' if key == 'minor' else 'black'
-                lw = 0.5 if key == 'minor' else 1
-                if key == 'spine':
-                    lw = 1.5
-                for r in rsi:
-                    c = plt.Circle(
-                            (0, 0), r,
-                            facecolor='none', edgecolor=ec,
-                            lw=lw,
-                            )
-                    ax.add_artist(c)
-            thetas = np.arange(0, 180, 45)
-            for th in thetas:
-                x = np.cos(th * np.pi / 180)
-                y = np.sin(th * np.pi / 180)
-                xs = [-x * rm, x * rm]
-                ys = [-y * rm, y * rm]
-                ax.plot(xs, ys, lw=1, color='grey')
-                ax.text(x * rm * 1.18, y * rm * 1.18, f'{th}°',
-                        ha='center', va='center')
-                th2 = th + 180
-                ax.text(-x * rm * 1.18, -y * rm * 1.18, f'{th2}°',
-                        ha='center', va='center')
-
-            ax.set_xlabel('$\Delta$ ME1 expression')
-            ax.set_ylabel('$\Delta$ Palantir expression', labelpad=15)
-            ax.legend(
-                    title='Gene:',
-                    loc='upper left',
-                    bbox_to_anchor=(1.01, 1.1), bbox_transform=ax.transAxes,
-                    fontsize=9,
-                    )
-            fig.tight_layout()
-
-            if True:
-                fxf = 'average_across_boundary_arrows_polar'
-                for ext in ['png', 'svg']:
-                    fig.savefig(f'{fig_fdn}{fxf}.{ext}')
 
     plt.ion()
     plt.show()

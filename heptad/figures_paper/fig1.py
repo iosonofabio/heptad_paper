@@ -277,7 +277,7 @@ if __name__ == '__main__':
                     ax = axs[i, j]
                     ax.set_ylim(top=ymax*1.1)
             fig.tight_layout(w_pad=0, h_pad=0)
-            if True:
+            if False:
                 fxf = 'distributions_profiles'
                 for ext in ['png', 'svg']:
                     if ext == 'png':
@@ -400,7 +400,7 @@ if __name__ == '__main__':
 
             axs[-1].set_ylabel('Cityblock distance on fractional coverage', labelpad=15)
             fig.tight_layout(w_pad=0.7)
-            if True:
+            if False:
                 fxf = 'heatmap_distance_profiles_healthy'
                 for ext in ['png', 'svg']:
                     if ext == 'png':
@@ -442,7 +442,7 @@ if __name__ == '__main__':
                     rotation=90, ha='center', va='center',
                     )
             fig.tight_layout(rect=(0.033, 0, 1, 1))
-            if True:
+            if False:
                 fxf = 'lineplots_distance_profiles_AML'
                 for ext in ['png', 'svg']:
                     if ext == 'png':
@@ -626,7 +626,7 @@ if __name__ == '__main__':
                     return fig
 
             fig = plot_confusion(dff)
-            if True:
+            if False:
                 fxf = 'confusion_matrix_all'
                 for ext in ['png', 'svg']:
                     if ext == 'png':
@@ -641,13 +641,15 @@ if __name__ == '__main__':
                     use_legend=ax==axs[-1],
                     )
             fig.tight_layout()
-            if True:
+            if False:
                 fxf = f'confusion_matrix_subplots'
                 for ext in ['png', 'svg']:
                     if ext == 'png':
                         fig.savefig(f'{fig_fdn}{fxf}.{ext}', dpi=600)
                     else:
                         fig.savefig(f'{fig_fdn}{fxf}.{ext}')
+
+        #TODO: add bootstrapping on patients on "equal or close"
 
     plt.ion()
     plt.show()
