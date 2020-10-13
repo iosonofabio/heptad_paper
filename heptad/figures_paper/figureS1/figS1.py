@@ -1,3 +1,4 @@
+# This script makes plots of data extracted using figS1_preprocess.py for figure S1
 import pickle
 import numpy as np 
 import pandas as pd 
@@ -5,12 +6,13 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 if __name__ == '__main__':
-    #Loading data
+    # Loading data
+    # change the following line to the figureS1 data folder 
     fdn_data = '/home/julie/DataSets/AssiDHS/'
     with open(f'{fdn_data}results_heptad.pkl', 'rb') as f:
         data = pickle.load(f)
 
-    #Setting variables
+    # Setting variables
     res = data['result']
     st = data['sampletable']
     pt = data['peaktable']

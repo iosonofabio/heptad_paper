@@ -1,3 +1,4 @@
+# This script makes plots of data extracted using fig2_preprocess.py for figure 2
 import os
 import sys
 import pickle
@@ -13,7 +14,7 @@ if __name__ == '__main__':
 	cell_type = input('Enter cell type to plot: ')
 	scale_factor = int(input('Enter scaling factor for minimum peak: '))
 
-	#load peak info
+	# load peak info
 	idx = ['TAL1_p40', 'LMO2_m25', 'FLI1_m15', 'LYL_P_alt', 'RUNX1_p141', 'RUNX1_p23', 'ERG_p85', 'GATA2_p4', 'GATA2_m117']
 	cols = ['LYL1', 'TAL1', 'LMO2', 'FLI1', 'ERG', 'GATA2', 'RUNX1']
 	peak = pd.read_excel('/home/julie/DataSets/BWgraph/JT_peakcall_check_minimal_overlap.xlsx', sheet_name = "All rel", usecols = 'A,F:M')
@@ -34,7 +35,8 @@ if __name__ == '__main__':
 
 
 
-	#Loading data
+	# Loading data
+	# change the following line to the figure2 data folder 
 	fn_res = '/home/julie/DataSets/BWgraph/results_heptad.pkl'
 	with open(fn_res, 'rb') as f:
 	    data = pickle.load(f)
@@ -48,7 +50,7 @@ if __name__ == '__main__':
 	height = []
     
 
-	#Plotting
+	# Plotting
 	fig, axs = plt.subplots(len(abtypes), len(elements), figsize=(5.5, 4.2))
 	for i in range(len(abtypes)):
 	    abtype = abtypes[i]
